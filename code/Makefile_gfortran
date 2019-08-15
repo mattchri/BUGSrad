@@ -1,0 +1,58 @@
+#Compile all programs
+echo "Compiling BUGSRAD . . ."
+gfortran --stack-protector -c kinds.f90 \
+           bugs_physconst.f90 \
+           continuum.f90 \
+           bandsolve.f \
+           bugsrad_planck.f90 \
+           gases_ckd.f90 \
+           rayle.f90 \
+           bugs_lwr.f \
+           bugs_swr.f \
+           bugs_rad.f \
+           cloud_correlate.f90 \
+           cloudg.f \
+           two_rt_lw.f \
+           two_rt_lw_iter.f \
+           two_rt_lw_ocastrndm.f90 \
+           two_rt_lw_sel.f \
+           two_rt_sw_bs.f \
+           two_rt_sw.f \
+           two_rt_sw_ocastrndm.f90 \
+           comscp1.f \
+           comscp2.f \
+	   midlatsum1.F90 \
+	   driver_for_bugsrad.f90 \
+	   process_bugsrad.F90
+
+#Link programs into an executable
+echo "linking programs into executable..."
+gfortran kinds.o \
+           bugs_physconst.o \
+           continuum.o \
+           bandsolve.o \
+           bugsrad_planck.o \
+           gases_ckd.o \
+           rayle.o \
+           cloud_correlate.o \
+           cloudg.o \
+           two_rt_lw.o \
+           two_rt_lw_iter.o \
+           two_rt_lw_ocastrndm.o \
+           two_rt_lw_sel.o \
+           two_rt_sw_bs.o \
+           two_rt_sw.o \
+           two_rt_sw_ocastrndm.o \
+           comscp1.o \
+           comscp2.o \
+           bugs_lwr.o \
+           bugs_swr.o \
+           bugs_rad.o \
+	   midlatsum1.o \
+	   driver_for_bugsrad.o \
+	   process_bugsrad.o -o process_bugsrad
+
+mkdir -p obj
+mv *.o obj/
+mv *.mod obj/
+
