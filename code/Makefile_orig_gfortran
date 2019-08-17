@@ -22,10 +22,8 @@ gfortran --stack-protector -c kinds.f90 \
            comscp1.f \
            comscp2.f \
 	   midlatsum1.F90 \
-	   read_profile.F90 \
-	   read_line_numbers.F90 \
-	   driver_for_bugsrad.f90 \
-	   process_bugsrad.F90
+	   driver_for_bugsrad_orig.f90 \
+	   process_bugsrad_orig.F90
 
 #Link programs into an executable
 echo "linking programs into executable..."
@@ -51,10 +49,8 @@ gfortran kinds.o \
            bugs_swr.o \
            bugs_rad.o \
 	   midlatsum1.o \
-	   read_profile.o \
-	   read_line_numbers.o \
-	   driver_for_bugsrad.o \
-	   process_bugsrad.o -o process_bugsrad
+	   driver_for_bugsrad_orig.o \
+	   process_bugsrad_orig.o -o process_bugsrad_orig
 
 mkdir -p obj
 mv *.o obj/

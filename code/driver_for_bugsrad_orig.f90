@@ -43,10 +43,11 @@
 ! None known.
 !-------------------------------------------------------------------------------
 
-subroutine driver_for_bugsrad(nlm,tsi,theta, &
+subroutine driver_for_bugsrad_orig(nlm,tsi,theta, &
                               asfcswrdr,asfcnirdr,asfcswrdf,asfcnirdf,tsfc, &
-                              cref, &
-                              pxZ,pxP,pxT,pxQ,pxO3,pxQl,pxQi,pxQr, &
+                              phaseflag,nlayers,cref,ccot,hctop,hcbase, &
+                              hctopID,hcbaseID, &
+                              pxZ,pxP,pxT,pxQ,pxO3, &
                               toalwup,toaswdn,toaswup, &
                               boalwup,boalwdn,boaswdn,boaswup, &
                               toalwupclr,toaswupclr, &
@@ -64,8 +65,13 @@ subroutine driver_for_bugsrad(nlm,tsi,theta, &
    ! Input arguments
 
    ! Model setup & cloud locations
-   integer, intent(in) :: nlm     ! Number of vertical layers. (-).
+   integer, intent(in) :: &
+      nlm    ,& ! Number of vertical layers. (-).
+      nlayers   ! Number of cloud layers
 
+   integer, intent(in) :: &
+      hctopID(nlayers) ,& ! vertical level index for Hctop  (-).
+      hcbaseID(nlayers)   ! vertical level index for Hcbase (-).
 
    integer, intent(in) :: &
       pxYEAR
@@ -80,7 +86,12 @@ subroutine driver_for_bugsrad(nlm,tsi,theta, &
       asfcnirdf,&  ! DIFFUSE near infrared surface albedo (-).
       tsfc         ! surface temperature
 
-   real, intent(in) :: cref      ! satellite cloud effective radius     (um).
+   real, intent(in) :: &
+      phaseflag(nlayers),& ! cloud phase=0 clear, = 1water, =2ice (-).
+      cref(nlayers)     ,& ! satellite cloud effective radius     (um).
+      ccot(nlayers)     ,& ! satellite cloud optical depth        (-).
+      hctop(nlayers)    ,& ! satellite cloud top height           (km).
+      hcbase(nlayers)      ! satellite cloud base height          (km).
 
    ! Meteorological profiles
    real, intent(in), dimension(nlm+1) :: &
@@ -89,11 +100,6 @@ subroutine driver_for_bugsrad(nlm,tsi,theta, &
       pxT ,& ! temperature profile at SAT. pixel         (K).
       pxQ ,& ! specific humidity profile at SAT. pixel   (kg/kg).
       pxO3   ! Ozone mixing ratio at SAT. pixel          (kg/kg).
-
-   real, intent(in), dimension(nlm+1) :: &
-      pxQl ,& ! geopotential height profile at SAT. pixel (km).
-      pxQi ,& ! pressure profile at SAT. pixel            (hPa).
-      pxQr   ! Ozone mixing ratio at SAT. pixel          (kg/kg).
 
    real, intent(in) :: emis(12) ! Spectral surface emissivity for each LW band
    real, intent(in) :: rho0d(6) ! Spectral direct surface albedo for each SW band
@@ -209,18 +215,29 @@ subroutine driver_for_bugsrad(nlm,tsi,theta, &
    qril(1,:) = 0.0 ! snow mixing ratio
    acld(1,:) = 0.0 ! layer cloud fraction
 
-   do i=1,nlm
-      if (pxQl(i) > 0.000002 .or. pxQi(i) > 0.000001) acld(1,i)=1.0
-      if (pxQl(i) > 0.000002) qcwl(1,i) = pxQl(i)
-      if (pxQi(i) > 0.000001) qcil(1,i) = pxQi(i)
-      
+   do i=1,nlayers
       ! Assign cloud to vertical layer
-      !print*,i,pl(1,i),qcwl(1,i),qcil(1,i),qrwl(1,i),qril(1,i),acld(1,i)
+      acld(1,hctopID(i):hcbaseID(i)) = 1.0
+
+      ! Compute cloud water mixing ratio
+      if (phaseflag(i) .eq. 1) then
+         LWP=((5./9.)*cref(i)*ccot(i)) * (5./6.)
+         CWC=LWP/((hctop(i)-hcbase(i))*1000.)
+!        mixing ratio = CWC / density of air (density = p/RT)
+         qcwl(1,hctopID(i):hcbaseID(i))=(CWC/(pl(1,hctopID(i):hcbaseID(i)) &
+            *100./(287.*tl(1,hctopID(i):hcbaseID(i)))))/1000.
+      end if
+      if (phaseflag(i) .eq. 2) then
+         LWP=((5./9.)*cref(i)*ccot(i)) * (5./6.)
+         CWC=LWP/((hctop(i)-hcbase(i))*1000.)
+         qcil(1,hctopID(i):hcbaseID(i))=(CWC/( pl(1,hctopID(i):hcbaseID(i)) &
+            *100./(287.*tl(1,hctopID(i):hcbaseID(i)))))/1000.
+      end if
    end do
-   
-   
+
    ! Read solar factor
    slr(:) = solar_factor
+
 
    ! Call the radiative transfer code
    call bugs_rad(nlen,len,nlm,pl2,pl,dpl,tl,ql,qcwl,qcil,qril, &
@@ -229,6 +246,29 @@ subroutine driver_for_bugsrad(nlm,tsi,theta, &
                  acld, umco2, umch4, umn2o, &
                  fdswcl,fuswcl,fdlwcl,fulwcl,boapar,boapardif,toapar,cref,&
                  emis,rho0d,rhodd)
+
+   ! Output results
+!  print fluxes in W/m2, heating rates in K/day.
+!  print *, " Fluxes   Plev       SW_DN       SW_UP       LW_DN       LW_UP"
+!  print *, "            Pa       W/m^2       W/m^2       W/m^2       W/m^2"
+!  do l=1,nlm+1
+!     print '(I4,5(F12.3))',l,pl2(1,l),fdsw(1,l),fusw(1,l), &
+!                                      fdlw(1,l),fulw(1,l)
+!  end do
+!
+!  print *, "CLR Fluxes   Plev       SW_DN       SW_UP       LW_DN       LW_UP"
+!  print *, "            Pa       W/m^2       W/m^2       W/m^2       W/m^2"
+!  do l=1,nlm+1
+!     print '(I4,5(F12.3))',l,pl2(1,l),fdswcl(1,l),fuswcl(1,l), &
+!                                      fdlwcl(1,l),fulwcl(1,l)
+!  end do
+!
+!  print *, 'Heating Rates   Play              SW            LW'
+!  print *, '                  Pa           K/day         K/day'
+!  do l=1,nlm
+!     print '(I4,6X, F12.3,2(F15.5))', &
+!           l,pl(1,l),asl(1,l)*86400.,atl(1,l)*86400. !K/day
+!  end do
 
 !  Assign values to specific output variables
    toalwup = fulw(1,1)
@@ -245,4 +285,4 @@ subroutine driver_for_bugsrad(nlm,tsi,theta, &
    boaswdnclr = fdswcl(1,nlm+1)
    boaswupclr = fuswcl(1,nlm+1)
 
-end subroutine driver_for_bugsrad
+end subroutine driver_for_bugsrad_orig

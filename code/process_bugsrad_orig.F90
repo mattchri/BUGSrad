@@ -9,14 +9,13 @@
 ! History:
 ! 2015/08/15, MC: Initial upload to repo
 !-------------------------------------------------------------------------------
-PROGRAM PROCESS_BUGSRAD
 
-character(100) :: fileIn, fileOut
-INTEGER :: nlev
-REAL, dimension (:), allocatable :: zA, pA, tA, qA, qlA, qiA, qrA, o3A
+PROGRAM PROCESS_BUGSRAD_ORIG
 
-integer, parameter :: NL = 129
+!BUGSrad setup
+integer, parameter :: NL = 29
 integer, parameter :: NLS = NL+1
+real, dimension(NLS) :: pxZ, pxP, pxT, pxQ, pxO3
 real :: pxTSI        ! Total incoming solar irradiance (true-earth)
 real :: pxTheta      ! Cosine of solar zenith angle
 real :: pxAsfcSWRdr  ! DIRECT visible surface albedo
@@ -24,7 +23,13 @@ real :: pxAsfcNIRdr  ! DIRECT near-infrared surface albedo
 real :: pxAsfcSWRdf  ! DIFFUSE visible surface albedo
 real :: pxAsfcNIRdf  ! DIFFUSE near-infrared surface albedo
 real :: pxts         ! land/sea surface temperature
-real :: pxREF(1)       ! cloud effective radius
+real :: pxPhaseFlag(2) ! cloud phase type
+integer :: ml_flag
+real :: pxREF(2)       ! cloud effective radius
+real :: pxCOT(2)       ! cloud optical depth
+real :: pxHctop(2)     ! input cloud top height
+real :: pxHcbase(2)    ! input cloud base height
+integer :: pxHctopID(2),pxHcbaseID(2)
 
 ! Radiation flux profiles
 real (kind=8), dimension(1,NL) :: &
@@ -48,52 +53,46 @@ real :: &
       bpar      ! BOA PAR total
 
 real :: rho_0d_bugsrad(6),rho_dd_bugsrad(6),emis_bugsrad(12)
-integer :: pxYear    ! Year
-!-------------------------------------------------------------------------------
 
+integer :: pxYear    ! Year
 
 !Set Constants
 pxYEAR = 2008
 pxTSI = 1361.
-pxtheta = 1.0
+pxtheta = .5
 emis_bugsrad(:) = 0.99 !pure blakbody surface
 rho_0d_bugsrad(:) = 0.15 !direct beam surface reflectance  (typical ocean)
 rho_dd_bugsrad(:) = 0.15 !diffuse beam surface reflectance (typical ocean)
 pxts = 300.0       !surface temperature (K)
 
+! Cloud base & top
+pxREF(:)       = -999.
+pxCOT(:)       = -999.
+pxHctop(:)     = -999.
+pxHcbase(:)    = -999.
+pxPhaseFlag(:) = -999.
+pxHctopID(:)   = -999.
+pxHcbaseID(:)  = -999.
+
+ml_flag = 1 !one cloud layer
+pxREF(1)       = 15.0
+pxCOT(1)       = 10.0
+pxHctop(1)     = 4.0 !cloud top height
+pxHcbase(1)    = 1.0 !cloud base height
+pxPhaseFlag(1) = 1   !water cloud
+pxHctopID(1)   = 26   !cloud top height
+pxHcbaseID(1)  = 29   !cloud base height
+
+
 !Read Thermodynamic Profile
-call get_command_argument(1,fileIn)
-call get_command_argument(2,fileOut)
-print*,fileIn
-print*,fileOut
+call midlatsum1(pxZ,pxP,pxT,pxQ,pxO3,NLS)
+pxQ = pxQ/1000.
 
-! Read Meteorological File
-call read_line_numbers(fileIn,nlev)
-print*,'number of model levels: ',nlev
-allocate(zA(nlev))
-allocate(pA(nlev))
-allocate(tA(nlev))
-allocate(qA(nlev))
-allocate(qlA(nlev))
-allocate(qiA(nlev))
-allocate(qrA(nlev))
-allocate(o3A(nlev))
-o3A(:) = 2.23930500e-07
-call read_profile(fileIn,nlev,zA, pA, tA, qA, qlA, qiA, qrA)
-   print*,'z, p, t, q, ql, qi, qr o3'
-   do i=1, nlev
-      print *,i,'  ',zA(i),tA(i),qA(i),qlA(i),qiA(i),qrA(i),o3A(i)
-   end do
-
-
-! effective radius
-pxREF(1) = 10.0 !used regardless in the radiation code
-
-
-call driver_for_bugsrad(nlev-1,pxTSI,pxtheta,pxAsfcSWRdr,&
+call driver_for_bugsrad_orig(NL,pxTSI,pxtheta,pxAsfcSWRdr,&
       pxAsfcNIRdr,pxAsfcSWRdf,pxAsfcNIRdf,pxts,&
-      pxREF,&
-      zA,pA,tA,qA,o3A,qlA,qiA,qrA,&
+      pxPhaseFlag,ml_flag,pxREF,pxCOT,pxHctop,pxHcbase,&
+      pxHctopID,pxHcbaseID,&
+      pxZ,pxP,pxT,pxQ,pxO3,&
       pxtoalwup,pxtoaswdn,pxtoaswup,&
       pxboalwup,pxboalwdn,pxboaswdn,pxboaswup,&
       pxtoalwupclr,pxtoaswupclr,&
@@ -106,30 +105,19 @@ call driver_for_bugsrad(nlev-1,pxTSI,pxtheta,pxAsfcSWRdr,&
 ! print fluxes in W/m2
       print *, " Fluxes   Plev       SW_DN       SW_UP       LW_DN       LW_UP"
       print *, "            Pa       W/m^2       W/m^2       W/m^2       W/m^2"
-      do l=1,nlev
-         print '(5(F12.3))',pA(l),dswfx(1,l),uswfx(1,l),dlwfx(1,l),ulwfx(1,l)
+      do l=1,NLS
+         print '(I4,5(F12.3))',l,pxP(l),dswfx(1,l),uswfx(1,l),dlwfx(1,l),ulwfx(1,l)
       enddo
 
 print*,'top of atmosphere incoming shortwave flux',pxtoaswdn
-print*,'top of atmosphere upwelling shortwave flux (obs,clr)',pxtoaswup,pxtoaswupclr
-print*,'top of atmosphere upwelling longwave flux (obs,clr)',pxtoalwup,pxtoalwupclr
-print*,'bottom of atmosphere incoming shortwave flux (obs,clr)',pxboaswdn,pxboaswdnclr
-print*,'bottom of atmosphere upwelling shortwave flux (obs,clr)',pxboaswup,pxboaswupclr
-print*,'bottom of atmosphere incoming longwave flux (obs,clr)',pxboalwdn,pxboalwdnclr
-print*,'bottom of atmosphere upwelling longwave flux (obs,clr)',pxboalwup,pxboalwupclr
+print*,'top of atmosphere upwelling shortwave flux',pxtoaswup
+print*,'top of atmosphere upwelling longwave flux',pxtoalwup
+print*,'bottom of atmosphere incoming shortwave flux',pxboaswdn
+print*,'bottom of atmosphere upwelling shortwave flux',pxboaswup
+print*,'bottom of atmosphere incoming longwave flux',pxboalwdn
+print*,'bottom of atmosphere upwelling longwave flux',pxboalwup
 print*,'top of atmosphere PAR',tpar
 print*,'bottom of atmosphere PAR',bpar
 print*,'bottom of atmosphere diffuse PAR',bpardif
 
-   ! output data into a file 
-   open(1, file = fileOut, status = 'replace')  
-      write(1,*) "   Plev     SW_DN     SW_UP     LW_DN     LW_UP     SWDN_CLR   SWUP_CLR  LWDN_CLR  LWUP_CLR"
-      write(1,*) "   hPa      W/m^2     W/m^2     W/m^2     W/m^2     W/m^2      W/m^2     W/m^2     W/m^2"
-      do l=1,nlev
-         write(1,'(9(F10.1, ","))') pA(l),dswfx(1,l),uswfx(1,l),dlwfx(1,l),ulwfx(1,l),&
-              dswfxclr(1,l),uswfxclr(1,l),dlwfxclr(1,l),ulwfxclr(1,l)
-      enddo
-   close(1) 
-
-
-END PROGRAM PROCESS_BUGSRAD
+END PROGRAM PROCESS_BUGSRAD_ORIG
