@@ -6,6 +6,9 @@
 ! Primarily for sensitivity testing. For full implementation into ORAC
 ! see https://github.com/ORAC-CC/orac/
 !
+! example
+! ./process_bugsrad ../profiles/bugsrad_input.txt ../profiles/output/bugsrad.txt
+!
 ! History:
 ! 2015/08/15, MC: Initial upload to repo
 !-------------------------------------------------------------------------------
@@ -24,7 +27,11 @@ real :: pxAsfcNIRdr  ! DIRECT near-infrared surface albedo
 real :: pxAsfcSWRdf  ! DIFFUSE visible surface albedo
 real :: pxAsfcNIRdf  ! DIFFUSE near-infrared surface albedo
 real :: pxts         ! land/sea surface temperature
-real :: pxREF(1)       ! cloud effective radius
+real :: pxemis      ! surface emissivity
+real :: pxREF(1)     ! cloud effective radius
+
+real :: pxasfcdir  ! DIRECT visible surface albedo
+real :: pxasfcdif  ! DIFFUSE visible surface albedo
 
 ! Radiation flux profiles
 real (kind=8), dimension(1,NL) :: &
@@ -51,15 +58,11 @@ real :: rho_0d_bugsrad(6),rho_dd_bugsrad(6),emis_bugsrad(12)
 integer :: pxYear    ! Year
 !-------------------------------------------------------------------------------
 
-
 !Set Constants
 pxYEAR = 2008
-pxTSI = 1361.
-pxtheta = 1.0
-emis_bugsrad(:) = 0.99 !pure blakbody surface
-rho_0d_bugsrad(:) = 0.15 !direct beam surface reflectance  (typical ocean)
-rho_dd_bugsrad(:) = 0.15 !diffuse beam surface reflectance (typical ocean)
-pxts = 300.0       !surface temperature (K)
+!pxTSI = 1361.
+!pxtheta = 1.0
+!pxts = 300.0       !surface temperature (K)
 
 !Read Thermodynamic Profile
 call get_command_argument(1,fileIn)
@@ -67,9 +70,11 @@ call get_command_argument(2,fileOut)
 print*,fileIn
 print*,fileOut
 
+
 ! Read Meteorological File
 call read_line_numbers(fileIn,nlev)
 print*,'number of model levels: ',nlev
+
 allocate(zA(nlev))
 allocate(pA(nlev))
 allocate(tA(nlev))
@@ -78,13 +83,18 @@ allocate(qlA(nlev))
 allocate(qiA(nlev))
 allocate(qrA(nlev))
 allocate(o3A(nlev))
-o3A(:) = 2.23930500e-07
-call read_profile(fileIn,nlev,zA, pA, tA, qA, qlA, qiA, qrA)
+call read_profile(fileIn,nlev,pxTSI,pxtheta,pxts, pxemis, pxasfcdir, &
+     pxasfcdif, zA, pA, tA, qA, qlA, qiA, qrA, o3A)
    print*,'z, p, t, q, ql, qi, qr o3'
    do i=1, nlev
       print *,i,'  ',zA(i),tA(i),qA(i),qlA(i),qiA(i),qrA(i),o3A(i)
    end do
 
+print*,pxTSI,pxtheta,pxts, pxemis, pxasfcdir, pxasfcdif
+
+emis_bugsrad(:) = pxemis !pure blakbody surface
+rho_0d_bugsrad(:) = pxasfcdir !direct beam surface reflectance  (typical ocean)
+rho_dd_bugsrad(:) = pxasfcdif !diffuse beam surface reflectance (typical ocean)
 
 ! effective radius
 pxREF(1) = 10.0 !used regardless in the radiation code

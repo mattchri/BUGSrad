@@ -1,20 +1,24 @@
-subroutine read_profile(fname,nlev,zA, pA, tA, qA, qlA, qiA, qrA)
+subroutine read_profile(fname,nlev,TSI,theta,Ts, emis, asfcdir, asfcdif, zA, pA, tA, qA, qlA, qiA, qrA, o3A)
 
    implicit none
 
    ! Input arguments
    CHARACTER(100), intent(in) :: fname
    INTEGER, intent(in) :: nlev
-   REAL :: z, p, t, q, ql, qi, qr
+   REAL :: TSI, theta, Ts, emis, asfcdir, asfcdif
+   REAL :: z, p, t, q, ql, qi, qr, o3
    INTEGER :: io, i
-   REAL, dimension (nlev) :: zA, pA, tA, qA, qlA, qiA, qrA
+   REAL, dimension (nlev) :: zA, pA, tA, qA, qlA, qiA, qrA, o3A
    INTEGER :: tnlev
    
    tnlev = 1
    OPEN(UNIT = 7, FILE = trim(fname) )
+   READ(7,*, IOSTAT=io) TSI, theta, Ts, emis, asfcdir, asfcdif
+   print*,TSI,theta,Ts,emis, asfcdir, asfcdif
+   
    io = 0
    DO WHILE (io == 0)
-   READ(7,*, IOSTAT=io) z, p, t, q, ql, qi, qr
+   READ(7,*, IOSTAT=io) z, p, t, q, ql, qi, qr, o3
    IF (io == 0) THEN
     zA(tnlev) = z
     pA(tnlev) = p
@@ -23,13 +27,10 @@ subroutine read_profile(fname,nlev,zA, pA, tA, qA, qlA, qiA, qrA)
     qlA(tnlev) = ql
     qiA(tnlev) = qi
     qrA(tnlev) = qr
+    o3A(tnlev) = o3
     tnlev = tnlev + 1
    ENDIF
    enddo
    CLOSE(UNIT=7)
 
-   !do i=1, nlev
-   !   print *,i,'  ',zA(i),tA(i),qA(i),qlA(i),qiA(i),qrA(i)
-   !end do
-   
 end subroutine read_profile
