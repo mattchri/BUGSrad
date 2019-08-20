@@ -16,7 +16,7 @@ PROGRAM PROCESS_BUGSRAD
 
 character(100) :: fileIn, fileOut
 INTEGER :: nlev
-REAL, dimension (:), allocatable :: zA, pA, tA, qA, qlA, qiA, qrA, o3A
+REAL, dimension (:), allocatable :: zA, pA, tA, qA, qlA, qiA, qrA, o3A, cfA
 
 integer, parameter :: NL = 129
 integer, parameter :: NLS = NL+1
@@ -83,13 +83,15 @@ allocate(qlA(nlev))
 allocate(qiA(nlev))
 allocate(qrA(nlev))
 allocate(o3A(nlev))
+allocate(cfA(nlev))
 call read_profile(fileIn,nlev,pxTSI,pxtheta,pxts, pxemis, pxasfcdir, &
-     pxasfcdif, zA, pA, tA, qA, qlA, qiA, qrA, o3A)
-   print*,'z, p, t, q, ql, qi, qr o3'
+     pxasfcdif, zA, pA, tA, qA, qlA, qiA, qrA, o3A, cfA)
+   print*,'z, p, t, q, ql, qi, qr o3, cf'
    do i=1, nlev
-      print *,i,'  ',zA(i),tA(i),qA(i),qlA(i),qiA(i),qrA(i),o3A(i)
+      print *,i,'  ',zA(i),tA(i),qA(i),qlA(i),qiA(i),qrA(i),o3A(i),cfA(i)
    end do
 
+print*,nlev
 print*,pxTSI,pxtheta,pxts, pxemis, pxasfcdir, pxasfcdif
 
 emis_bugsrad(:) = pxemis !pure blakbody surface
@@ -99,11 +101,10 @@ rho_dd_bugsrad(:) = pxasfcdif !diffuse beam surface reflectance (typical ocean)
 ! effective radius
 pxREF(1) = 10.0 !used regardless in the radiation code
 
-
 call driver_for_bugsrad(nlev-1,pxTSI,pxtheta,pxAsfcSWRdr,&
       pxAsfcNIRdr,pxAsfcSWRdf,pxAsfcNIRdf,pxts,&
       pxREF,&
-      zA,pA,tA,qA,o3A,qlA,qiA,qrA,&
+      zA,pA,tA,qA,o3A,qlA,qiA,qrA,cfA,&
       pxtoalwup,pxtoaswdn,pxtoaswup,&
       pxboalwup,pxboalwdn,pxboaswdn,pxboaswup,&
       pxtoalwupclr,pxtoaswupclr,&

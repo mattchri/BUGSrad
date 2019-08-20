@@ -1,4 +1,4 @@
-subroutine read_profile(fname,nlev,TSI,theta,Ts, emis, asfcdir, asfcdif, zA, pA, tA, qA, qlA, qiA, qrA, o3A)
+subroutine read_profile(fname,nlev,TSI,theta,Ts, emis, asfcdir, asfcdif, zA, pA, tA, qA, qlA, qiA, qrA, o3A, cfA)
 
    implicit none
 
@@ -6,9 +6,9 @@ subroutine read_profile(fname,nlev,TSI,theta,Ts, emis, asfcdir, asfcdif, zA, pA,
    CHARACTER(100), intent(in) :: fname
    INTEGER, intent(in) :: nlev
    REAL :: TSI, theta, Ts, emis, asfcdir, asfcdif
-   REAL :: z, p, t, q, ql, qi, qr, o3
+   REAL :: z, p, t, q, ql, qi, qr, o3, cf
    INTEGER :: io, i
-   REAL, dimension (nlev) :: zA, pA, tA, qA, qlA, qiA, qrA, o3A
+   REAL, dimension (nlev) :: zA, pA, tA, qA, qlA, qiA, qrA, o3A, cfA
    INTEGER :: tnlev
    
    tnlev = 1
@@ -18,7 +18,7 @@ subroutine read_profile(fname,nlev,TSI,theta,Ts, emis, asfcdir, asfcdif, zA, pA,
    
    io = 0
    DO WHILE (io == 0)
-   READ(7,*, IOSTAT=io) z, p, t, q, ql, qi, qr, o3
+   READ(7,*, IOSTAT=io) z, p, t, q, ql, qi, qr, o3, cf
    IF (io == 0) THEN
     zA(tnlev) = z
     pA(tnlev) = p
@@ -28,6 +28,7 @@ subroutine read_profile(fname,nlev,TSI,theta,Ts, emis, asfcdir, asfcdif, zA, pA,
     qiA(tnlev) = qi
     qrA(tnlev) = qr
     o3A(tnlev) = o3
+    cfA(tnlev) = cf
     tnlev = tnlev + 1
    ENDIF
    enddo

@@ -46,7 +46,7 @@
 subroutine driver_for_bugsrad(nlm,tsi,theta, &
                               asfcswrdr,asfcnirdr,asfcswrdf,asfcnirdf,tsfc, &
                               cref, &
-                              pxZ,pxP,pxT,pxQ,pxO3,pxQl,pxQi,pxQr, &
+                              pxZ,pxP,pxT,pxQ,pxO3,pxQl,pxQi,pxQr, pxCf, &
                               toalwup,toaswdn,toaswup, &
                               boalwup,boalwdn,boaswdn,boaswup, &
                               toalwupclr,toaswupclr, &
@@ -93,7 +93,8 @@ subroutine driver_for_bugsrad(nlm,tsi,theta, &
    real, intent(in), dimension(nlm+1) :: &
       pxQl ,& ! geopotential height profile at SAT. pixel (km).
       pxQi ,& ! pressure profile at SAT. pixel            (hPa).
-      pxQr   ! Ozone mixing ratio at SAT. pixel          (kg/kg).
+      pxQr ,& ! Ozone mixing ratio at SAT. pixel          (kg/kg).
+      pxCf    ! cloud fraction          (kg/kg).
 
    real, intent(in) :: emis(12) ! Spectral surface emissivity for each LW band
    real, intent(in) :: rho0d(6) ! Spectral direct surface albedo for each SW band
@@ -210,9 +211,13 @@ subroutine driver_for_bugsrad(nlm,tsi,theta, &
    acld(1,:) = 0.0 ! layer cloud fraction
 
    do i=1,nlm
-      if (pxQl(i) > 0.000002 .or. pxQi(i) > 0.000001) acld(1,i)=1.0
-      if (pxQl(i) > 0.000002) qcwl(1,i) = pxQl(i)
-      if (pxQi(i) > 0.000001) qcil(1,i) = pxQi(i)
+      !if (pxQl(i) > 0.000002 .or. pxQi(i) > 0.000001) acld(1,i)=1.0
+      !if (pxQl(i) > 0.000002) qcwl(1,i) = pxQl(i)
+      !if (pxQi(i) > 0.000001) qcil(1,i) = pxQi(i)
+
+      acld(1,i) = pxCf(i)
+      qcwl(1,i) = pxQl(i)
+      qcil(1,i) = pxQi(i)
       
       ! Assign cloud to vertical layer
       !print*,i,pl(1,i),qcwl(1,i),qcil(1,i),qrwl(1,i),qril(1,i),acld(1,i)
