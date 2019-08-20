@@ -3,8 +3,8 @@ def read_profile(profFile):
     f = open(profFile, 'r')
     lines = f.readlines()
     nlev = len(lines)
-    varN = ['z','p','t','q','ql','qi','qr']
-    varU = ['km','hPa','K','kg/kg','kg/kg','kg/kg','kg/kg']
+    varN = ['z','p','t','q','ql','qi','qr','cf']
+    varU = ['km','hPa','K','kg/kg','kg/kg','kg/kg','kg/kg','']
     z = []
     p = []
     t = []
@@ -12,6 +12,7 @@ def read_profile(profFile):
     ql = []
     qi = []
     qr = []
+    cf = []
     for i in range(nlev):
         z.append(float((lines[i].split(','))[0]))
         p.append(float((lines[i].split(','))[1]))
@@ -20,6 +21,7 @@ def read_profile(profFile):
         ql.append(float((lines[i].split(','))[4]))
         qi.append(float((lines[i].split(','))[5]))
         qr.append(float((lines[i].split(','))[6]))
+        cf.append(float((lines[i].split(','))[7]))
     z = np.asarray(z)
     p = np.asarray(p)
     t = np.asarray(t)
@@ -27,8 +29,9 @@ def read_profile(profFile):
     ql = np.asarray(ql)
     qi = np.asarray(qi)
     qr = np.asarray(qr)
+    cf = np.asarray(cf)
     f.close()
-    output = {"z": z, "p":p, "t":t, "q":q, "ql":ql, "qi":qi, "qr":qr}
+    output = {"z": z, "p":p, "t":t, "q":q, "ql":ql, "qi":qi, "qr":qr, "cf":cf}
     return output
 
 #Read BUGSrad File
